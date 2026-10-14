@@ -86,9 +86,18 @@ Then:
 ```sh
 SB_DIR="$(defaults read com.ameba.SwiftBar PluginDirectory)"
 curl -fsSL https://raw.githubusercontent.com/loburets/opencode-keep-awake/main/swiftbar/keepawake.10s.sh -o "$KA_TMP/keepawake.10s.sh"
-cmp -s "$KA_TMP/keepawake.10s.sh" "$SB_DIR/keepawake.10s.sh" && echo "already installed" || cp "$KA_TMP/keepawake.10s.sh" "$SB_DIR/keepawake.10s.sh"
-chmod +x "$SB_DIR/keepawake.10s.sh"
+DEST="$SB_DIR/keepawake.10s.sh"
+if [ -f "$DEST" ] && cmp -s "$KA_TMP/keepawake.10s.sh" "$DEST"; then
+  echo "already installed"
+elif [ -f "$DEST" ]; then
+  echo "DIFFERENT FILE EXISTS"; diff "$DEST" "$KA_TMP/keepawake.10s.sh"
+else
+  cp "$KA_TMP/keepawake.10s.sh" "$DEST" && echo "installed"
+fi
+chmod +x "$DEST"
 ```
+
+If it prints `DIFFERENT FILE EXISTS`, show the diff to the human and ask before overwriting with `cp "$KA_TMP/keepawake.10s.sh" "$DEST"`, as in step 2.
 
 Verify:
 
@@ -103,7 +112,7 @@ Expected: `executable`, then one of these first lines:
 - `● | color=#30b0c7`: idle sleep is blocked
 - `● | color=#ff9500`: the closed lid is held too
 
-A grey dot in the menu bar should appear within about 10 seconds.
+The dot in the menu bar should appear within about 10 seconds. It can be blue while opencode is idle if some other program on the Mac runs `caffeinate`; the script reports every `caffeinate`, not only this plugin's.
 
 ## Step 4. Level 2: ask the human
 

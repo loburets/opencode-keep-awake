@@ -41,25 +41,26 @@ This is enough for most people.
 
 The rule allows those two literal commands with those exact arguments, and nothing else. sudoers matches arguments literally, so adding flags makes the command fall outside the rule. To remove it: `sudo rm /etc/sudoers.d/opencode-keepawake`. Without the rule the plugin simply runs Level 1.
 
-On battery, the plugin holds the closed lid only while the charge is above 20%. You can change that with `OPENCODE_KEEPAWAKE_BATTERY_FLOOR`.
+On battery, the plugin holds the closed lid only while the charge is above 20%. You can change that with `OPENCODE_KEEPAWAKE_BATTERY_FLOOR`. Below the floor with the lid already closed, it lets go of the idle hold too, so nothing keeps a closed laptop running on its last charge.
 
 ## Limitations
 
 - macOS only.
 - **Run one opencode server at a time.** The `disablesleep` flag has no counter, so two servers running at once will fight over it.
+- **The plugin treats `disablesleep` as its own.** While no session works it clears the flag, whoever set it. If you or another tool run `sudo pmset disablesleep 1` while an opencode server with this plugin is running, the plugin reverts it within about 15 seconds.
 - **The flag survives a reboot and does not clear itself on a crash.** The plugin clears a leftover flag the next time it starts. To check or fix it by hand:
   ```
   pmset -g | grep SleepDisabled     # 1 means sleep is disabled
   sudo pmset disablesleep 0         # clear it
   ```
-- A session waiting for your approval still counts as working, so the Mac stays awake while it waits. On battery that stops at the battery floor. On power nothing stops it.
+- A session waiting for your approval still counts as working, so the Mac stays awake while it waits. With the lid closed on battery, the battery floor ends it. With the lid open on battery, it lasts until macOS sleeps on its own low-battery warning. On power nothing ends it.
 - A closed laptop running in a bag traps heat. Apple's guidance is about what the laptop sits on, not about the lid, but a bag has no airflow. Don't do it.
 - `pmset disablesleep` is undocumented and could change in any macOS release.
 - Written against the published opencode **1.x** plugin API and tested on opencode 1.19.0. The `sst/opencode` repository has moved to `anomalyco/opencode`, and its `dev` branch is a v2 rewrite with a different plugin interface. This plugin will need changes for v2.
 
 ## Safety rule
 
-If the plugin cannot read or understand its source of activity, it treats that as "nobody is working" and releases both holds. It never holds when it is unsure. The worst result of a format change should be that the feature quietly stops working, not a laptop that never sleeps and drains flat in a bag.
+If the plugin cannot read or understand its source of activity, or the source does not answer within 5 seconds, it treats that as "nobody is working" and releases both holds. The same goes for the battery and lid readings: if one cannot be read, the plugin assumes the unsafe case and lets go. It never holds when it is unsure. The worst result of a format change should be that the feature quietly stops working, not a laptop that never sleeps and drains flat in a bag.
 
 ## Testing
 
@@ -67,7 +68,7 @@ If the plugin cannot read or understand its source of activity, it treats that a
 node test/drive.mts
 ```
 
-Needs Node 22.18 or newer, macOS, and the Level 2 sudoers rule. It drives the plugin with a fake opencode client and checks the results against real `pmset` output. **It changes the real `SleepDisabled` setting while it runs** and restores the value it found when it finishes. It refuses to run while a live copy of the plugin holds a guard, because that copy would change the flag under the test.
+Needs Node 22.18 or newer, macOS, and the Level 2 sudoers rule. It drives the plugin with a fake opencode client and checks the results against real `pmset` output. **It changes the real `SleepDisabled` setting while it runs** and restores the value it found when it finishes. It refuses to run while a live copy of the plugin holds a guard, because that copy would change the flag under the test. The battery floor case runs only on battery power and is skipped on AC.
 
 ## Other agents
 
