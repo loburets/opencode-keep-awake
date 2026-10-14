@@ -1,12 +1,12 @@
 # opencode-keep-awake
 
-Your Mac goes to sleep halfway through a long agent task. Keep-awake tools that run for a fixed time always pick the wrong length, either too short or too long.
+Your Mac goes to sleep halfway through a long agent task.
 
 This one keeps a Mac awake only while an [opencode](https://opencode.ai) session is actually working. As soon as the work ends, the Mac can sleep again.
 
 ![Menu bar while opencode is working](example-screenshot.png)
 
-While a session works, the menu bar dot turns orange. The first line tells you the Mac will not sleep, even with the lid closed. The second line, **Release the closed lid now**, clears the closed-lid hold at once. If a session is still working, the plugin sets it again at its next check, within about 15 seconds. When nothing is working the dot is grey. A blue dot means only idle sleep is blocked, so closing the lid will still put the Mac to sleep.
+While a session works, the menu bar dot turns orange. When nothing is working the dot is grey.
 
 ## Install
 
@@ -14,7 +14,7 @@ Tell your coding agent:
 
 > Read https://raw.githubusercontent.com/loburets/opencode-keep-awake/main/INSTALL_FOR_AGENT.md and follow it.
 
-The agent asks you before it does anything that needs root. If you want to read what it will do, the manual steps are in the [appendix](#appendix-manual-install).
+If you want to read what it will do, the manual steps are in the [appendix](#appendix-manual-install).
 
 ## How it works
 
