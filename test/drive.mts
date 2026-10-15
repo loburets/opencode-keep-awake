@@ -233,6 +233,46 @@ try {
     check("dispose leaves no guard and no flag", await waitFor(released), state())
   }
 
+  {
+    // One opencode server loads this plugin once per project directory, so
+    // several copies run in one process and drive the same power controls.
+    // Each copy only sees the sessions of its own directory.
+    const working: State = { sessions: busy }
+    const first = await KeepAwake({ client: fakeClient(working) })
+    check("two copies, one working: both holds taken", await waitFor(held), state())
+
+    const second = await KeepAwake({ client: fakeClient({ sessions: idle }) })
+    await sleep(300)
+    check("a second copy does not add a second guard", ourGuards() === 1, state())
+
+    await second.event(statusEvent)
+    await sleep(300)
+    check("an idle copy does not release the holds of a working one", held(), state())
+
+    await second.dispose()
+    await sleep(300)
+    check("disposing an idle copy leaves the holds taken", held(), state())
+
+    working.sessions = idle
+    await first.event(statusEvent)
+    check("the last working copy going idle releases both holds", await waitFor(released), state())
+
+    await first.dispose()
+  }
+
+  {
+    // The same two copies, in the other order: the working one leaves first.
+    const first = await KeepAwake({ client: fakeClient({ sessions: busy }) })
+    const second = await KeepAwake({ client: fakeClient({ sessions: idle }) })
+    await waitFor(held)
+
+    await first.dispose()
+    check("disposing the working copy releases both holds", await waitFor(released), state())
+
+    await second.dispose()
+    check("disposing the last copy leaves nothing held", released(), state())
+  }
+
   if (onBattery()) {
     // A fresh copy of the module with a floor no charge can pass.
     process.env.OPENCODE_KEEPAWAKE_BATTERY_FLOOR = "100"
