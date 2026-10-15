@@ -6,7 +6,7 @@ This one keeps a Mac awake only while an [opencode](https://opencode.ai) session
 
 ![Menu bar while opencode is working](example-screenshot.png)
 
-While a session works, the menu bar dot turns orange. When nothing is working the dot is grey. A blue dot means idle sleep is blocked but a closed lid would still sleep: either Level 2 below is not installed, or the battery is below the floor, or another program on the Mac is running `caffeinate`.
+While a session works, the menu bar dot turns orange. When nothing is working the dot is grey.
 
 ## Install
 
@@ -15,15 +15,6 @@ Tell your coding agent:
 > Read https://raw.githubusercontent.com/loburets/opencode-keep-awake/main/INSTALL_FOR_AGENT.md and follow it.
 
 If you want to read what it will do, the manual steps are in the [appendix](#appendix-manual-install).
-
-## Upgrade
-
-Overwrite the plugin with the current version and restart opencode when no session is running:
-
-```sh
-curl -fsSL https://raw.githubusercontent.com/loburets/opencode-keep-awake/main/plugin/keep-awake.ts \
-  -o ~/.config/opencode/plugins/keep-awake.ts
-```
 
 ## How it works
 
@@ -55,7 +46,7 @@ On battery, the plugin holds the closed lid only while the charge is above 20%. 
 ## Limitations
 
 - macOS only.
-- **Run one opencode server at a time.** The `disablesleep` flag has no counter, so two servers running at once will fight over it. Several project directories in one server are fine: all copies of the plugin in a process share one set of holds.
+- **Run one opencode server at a time.** The `disablesleep` flag has no counter, so two servers running at once will fight over it.
 - **The plugin treats `disablesleep` as its own.** While no session works it clears the flag, whoever set it. If you or another tool run `sudo pmset disablesleep 1` while an opencode server with this plugin is running, the plugin reverts it within about 15 seconds.
 - **The flag survives a reboot and does not clear itself on a crash.** The plugin clears a leftover flag the next time it starts. To check or fix it by hand:
   ```
@@ -78,8 +69,6 @@ node test/drive.mts
 ```
 
 Needs Node 22.18 or newer, macOS, and the Level 2 sudoers rule. It drives the plugin with a fake opencode client and checks the results against real `pmset` output. **It changes the real `SleepDisabled` setting while it runs** and restores the value it found when it finishes. It refuses to run while a live copy of the plugin holds a guard, because that copy would change the flag under the test. The battery floor case runs only on battery power and is skipped on AC.
-
-The plugin also logs its own warnings through opencode, into `~/.local/share/opencode/log/opencode.log`. The service name is not part of the written line, so search for the message text instead, for example `grep unreadable`.
 
 ## Other agents
 
@@ -114,7 +103,6 @@ Why it is built this way:
 8. **Never cache the state of the `disablesleep` flag.** It is global and anything on the machine can change it, so a cached value quietly drifts from reality. The plugin reads it with `pmset -g` before every write. This bug also happened.
 9. **`caffeinate -i -m -w <serverPid>` releases its assertions by itself when the server dies, even on SIGKILL.** That is the dead-man switch for Level 1. The `disablesleep` flag has no such protection, which is why the plugin checks it and clears it when it starts.
 10. **The plugin API changes in v2** (see Limitations).
-11. **The status map covers one project directory, and one server loads this plugin once per directory.** `GET /session/status` answers for the directory of the copy that asks. A copy whose directory is idle sees an empty map while another copy is working. Both drive the same machine-wide flag, so the idle copy used to clear it under the busy one and the Mac could sleep in the middle of a task. The menu bar showed this as a blue dot that flipped to orange and back every 15 seconds. Every copy in a process now joins one registry that owns the holds, and the machine counts as working while any copy says it is.
 
 ## Appendix: manual install
 
